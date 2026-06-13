@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>馬狼</title>
+<style>
+:root {
+  --color-background-primary: #ffffff;
+  --color-background-secondary: #f5f5f2;
+  --color-background-info: #e6f1fb;
+  --color-text-primary: #1a1a18;
+  --color-text-secondary: #6b6b68;
+  --color-border-tertiary: rgba(0,0,0,0.12);
+  --color-border-secondary: rgba(0,0,0,0.22);
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --border-radius-md: 8px;
+  --border-radius-lg: 12px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-background-primary: #1e1e1c;
+    --color-background-secondary: #2a2a28;
+    --color-background-info: #042c53;
+    --color-text-primary: #f0ede6;
+    --color-text-secondary: #9a9a96;
+    --color-border-tertiary: rgba(255,255,255,0.1);
+    --color-border-secondary: rgba(255,255,255,0.2);
+  }
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font-sans); background: var(--color-background-secondary); min-height: 100vh; display: flex; justify-content: center; padding: 1.5rem 1rem; }
+#app { width: 100%; max-width: 680px; padding: .75rem 0; }
+.scr { display: none; } .scr.on { display: block; }
+h2 { font-size: 18px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 4px; }
+p.sub { font-size: 13px; color: var(--color-text-secondary); margin-bottom: 1rem; }
+.lbl { font-size: 11px; color: var(--color-text-secondary); font-weight: 500; letter-spacing: .05em; text-transform: uppercase; margin-bottom: 6px; }
+.card { background: var(--color-background-primary); border: .5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 1rem 1.25rem; margin-bottom: 12px; }
+.btn { border: none; border-radius: var(--border-radius-md); padding: 10px 20px; font-size: 14px; font-weight: 500; cursor: pointer; transition: opacity .15s; }
+.btn-blue { background: #3b7dd8; color: #fff; } .btn-blue:hover { opacity: .85; } .btn-blue:disabled { opacity: .4; cursor: not-allowed; }
+.btn-ghost { background: transparent; color: var(--color-text-primary); border: .5px solid var(--color-border-secondary); padding: 8px 14px; font-size: 13px; cursor: pointer; border-radius: var(--border-radius-md); }
+.btn-ghost:hover { background: var(--color-background-secondary); }
+.pbar { display: flex; gap: 5px; margin-bottom: 1.25rem; }
+.pd { flex: 1; height: 3px; border-radius: 2px; background: var(--color-border-tertiary); transition: background .3s; }
+.pd.done { background: #3b7dd8; } .pd.cur { background: #7bb3f0; }
+.pi-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.pi-row input { flex: 1; padding: 8px 12px; border: .5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); font-size: 14px; background: var(--color-background-primary); color: var(--color-text-primary); }
+.pi-num { width: 26px; height: 26px; border-radius: 50%; background: var(--color-background-secondary); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 500; color: var(--color-text-secondary); flex-shrink: 0; }
+.rc-table { width: 100%; border-collapse: collapse; }
+.rc-table th { font-size: 11px; color: var(--color-text-secondary); font-weight: 500; letter-spacing: .04em; text-transform: uppercase; padding: 6px 8px; text-align: left; border-bottom: .5px solid var(--color-border-tertiary); }
+.rc-table td { padding: 8px; border-bottom: .5px solid var(--color-border-tertiary); font-size: 14px; color: var(--color-text-primary); vertical-align: middle; }
+.rc-table tr:last-child td { border-bottom: none; }
+.rc-table td.pts { font-weight: 500; color: #185fa5; text-align: right; }
+.rc-table th.pts { text-align: right; }
+.hn-circle { display: inline-flex; width: 26px; height: 26px; border-radius: 50%; align-items: center; justify-content: center; font-size: 12px; font-weight: 500; color: #fff; flex-shrink: 0; }
+.horse-name-input { width: 100%; padding: 5px 8px; border: .5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); font-size: 13px; background: var(--color-background-primary); color: var(--color-text-primary); outline: none; }
+.horse-name-input:focus { border-color: #3b7dd8; }
+.track { background: #264d17; border-radius: var(--border-radius-lg); padding: 12px 14px; margin-bottom: 12px; }
+.lane { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; height: 34px; } .lane:last-child { margin-bottom: 0; }
+.hn { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 500; color: #fff; flex-shrink: 0; }
+.lt { flex: 1; position: relative; height: 30px; background: rgba(255,255,255,.08); border-radius: 3px; overflow: hidden; }
+.fl { position: absolute; right: 0; top: 0; bottom: 0; width: 3px; background: repeating-linear-gradient(180deg,#fff 0 4px,#333 4px 8px); z-index: 2; }
+.hi { position: absolute; top: 50%; transform: translateY(-50%); font-size: 18px; z-index: 3; line-height: 1; transition: left .08s linear; }
+.hn-tag { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); font-size: 9px; color: rgba(255,255,255,.4); pointer-events: none; }
+.rb { position: absolute; left: 2px; top: 50%; transform: translateY(-50%); font-size: 10px; color: #ffd700; z-index: 4; display: none; font-weight: 500; }
+.reveal-box { text-align: center; padding: 2rem 1rem; background: var(--color-background-secondary); border-radius: var(--border-radius-lg); border: .5px solid var(--color-border-tertiary); }
+.horse-big { font-size: 60px; font-weight: 500; margin: .75rem 0; line-height: 1; }
+.horse-nm { font-size: 16px; font-weight: 500; color: var(--color-text-primary); }
+.horse-od { font-size: 12px; color: var(--color-text-secondary); margin-top: 4px; }
+.vgrid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-bottom: 12px; }
+.vcard { background: var(--color-background-primary); border: .5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 12px 8px; text-align: center; cursor: pointer; position: relative; transition: border-color .15s, background .15s; user-select: none; }
+.vcard:hover:not(.dead) { border-color: var(--color-border-secondary); background: var(--color-background-secondary); }
+.vcard.dead { pointer-events: none; background: var(--color-background-secondary); }
+.vcard.is-wolf { border: 1.5px solid #e24b4a; }
+.vcnt { position: absolute; top: -8px; right: -8px; background: #e24b4a; color: #fff; border-radius: 50%; width: 22px; height: 22px; align-items: center; justify-content: center; font-size: 12px; font-weight: 500; display: none; }
+.vcnt.show { display: flex; }
+.vname { font-size: 14px; font-weight: 500; color: var(--color-text-primary); }
+.vstatus { font-size: 11px; color: var(--color-text-secondary); margin-top: 3px; }
+.vhorse { font-size: 10px; margin-top: 3px; }
+.pod3 { display: flex; gap: 8px; margin-bottom: 10px; }
+.pod { flex: 1; text-align: center; padding: 10px 4px; border-radius: var(--border-radius-md); background: var(--color-background-secondary); border: .5px solid var(--color-border-tertiary); }
+.pod-rank { font-size: 16px; margin-bottom: 3px; }
+.pod-name { font-size: 11px; font-weight: 500; color: var(--color-text-primary); }
+.pod-info { font-size: 10px; color: var(--color-text-secondary); margin-top: 2px; }
+.payout-highlight { background: var(--color-background-info); border-radius: var(--border-radius-md); padding: 10px 14px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; font-size: 13px; }
+.payout-val { font-size: 20px; font-weight: 500; color: #0c447c; }
+.elim-notice { padding: 12px; border-radius: var(--border-radius-md); margin-bottom: 12px; text-align: center; font-size: 13px; line-height: 1.6; display: none; }
+.big-banner { text-align: center; padding: 1.5rem; border-radius: var(--border-radius-lg); margin-bottom: 12px; }
+.banner-title { font-size: 22px; font-weight: 500; }
+.banner-sub { font-size: 13px; margin-top: 6px; line-height: 1.6; }
+.score-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: .5px solid var(--color-border-tertiary); font-size: 14px; }
+.score-item:last-child { border-bottom: none; }
+.score-name { color: var(--color-text-primary); font-weight: 500; }
+.score-pts { color: var(--color-text-secondary); }
+.score-pts.wolf-gain { color: #a32d2d; font-weight: 500; }
+.score-pts.vil-gain { color: #185fa5; font-weight: 500; }
+.rc-mini { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.rc-mini-item { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--color-text-secondary); background: var(--color-background-secondary); border-radius: 20px; padding: 3px 8px 3px 4px; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+    <h2>🐎 馬狼</h2>
+    <span id="game-count-badge" style="font-size:12px;color:var(--color-text-secondary);display:none;"></span>
+  </div>
+  <div class="pbar">
+    <div class="pd" id="pd0"></div>
+    <div class="pd" id="pd1"></div>
+    <div class="pd" id="pd2"></div>
+    <div class="pd" id="pd3"></div>
+    <div class="pd" id="pd4"></div>
+    <div class="pd" id="pd5"></div>
+  </div>
+
+  <!-- SETUP -->
+  <div id="scr-setup" class="scr on">
+    <p class="sub">プレイヤーの名前を入力（4〜6名）</p>
+    <div class="card" id="player-list"></div>
+    <div style="display:flex;gap:8px;margin-bottom:12px;">
+      <button class="btn-ghost" id="add-btn" onclick="addPlayer()">＋ プレイヤーを追加</button>
+    </div>
+    <div class="card">
+      <div class="lbl">賭け金（1ゲームあたり）</div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input type="number" id="bet-input" value="1000" min="100" max="99999" step="100" style="width:110px;padding:7px 10px;border:.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);font-size:14px;background:var(--color-background-primary);color:var(--color-text-primary);text-align:right;">
+        <span style="font-size:13px;color:var(--color-text-secondary);">ポイント</span>
+      </div>
+    </div>
+    <button class="btn btn-blue" id="start-btn" onclick="goRaceCard()" disabled>ゲームを開始</button>
+  </div>
+
+  <!-- RACE CARD -->
+  <div id="scr-racecard" class="scr">
+    <p class="sub">馬名を編集して、全員で出走表を確認してください</p>
+    <div class="card">
+      <table class="rc-table">
+        <thead>
+          <tr>
+            <th style="width:36px">番号</th>
+            <th>馬名（編集可）</th>
+            <th style="width:60px">オッズ</th>
+            <th class="pts" style="width:90px">的中pt</th>
+          </tr>
+        </thead>
+        <tbody id="rc-tbody"></tbody>
+      </table>
+    </div>
+    <div style="background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 14px;font-size:12px;color:var(--color-text-secondary);margin-bottom:12px;line-height:1.6;">
+      馬狼（1着馬の持ち主）が最後まで生き残ると的中ptを獲得。村人が馬狼を見つけた場合は生存者で山分け。
+    </div>
+    <button class="btn btn-blue" onclick="dealCards()">カードを配る →</button>
+  </div>
+
+  <!-- DEAL -->
+  <div id="scr-deal" class="scr">
+    <p class="sub" id="deal-who"></p>
+    <div class="reveal-box">
+      <div id="reveal-prompt">
+        <div style="font-size:14px;color:var(--color-text-secondary);margin-bottom:1.25rem;">他の人に見られないよう、<br>自分だけで確認してください</div>
+        <button class="btn btn-blue" onclick="showCard()">タップして番号を確認</button>
+      </div>
+      <div id="reveal-content" style="display:none;">
+        <div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:4px;">あなたの馬番号</div>
+        <div class="horse-big" id="reveal-num"></div>
+        <div class="horse-nm" id="reveal-name"></div>
+        <div class="horse-od" id="reveal-odds"></div>
+        <div id="reveal-pts" style="margin-top:8px;font-size:13px;color:var(--color-text-secondary);"></div>
+        <div style="margin-top:1.25rem;">
+          <button class="btn btn-blue" onclick="nextDeal()">確認しました →</button>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:8px;text-align:right;">
+      <span style="font-size:12px;color:var(--color-text-secondary);" id="deal-prog"></span>
+    </div>
+  </div>
+
+  <!-- RACE -->
+  <div id="scr-race" class="scr">
+    <p class="sub">自分の馬を心の中で応援しましょう</p>
+    <div class="card" style="padding:.75rem 1rem;">
+      <div class="lbl" style="margin-bottom:6px;">出走表</div>
+      <div id="race-rc-mini" class="rc-mini"></div>
+    </div>
+    <div class="track" id="track"></div>
+    <div style="text-align:center;margin-top:4px;">
+      <button class="btn btn-blue" id="race-start-btn" onclick="startRace()">レーススタート</button>
+      <button class="btn btn-blue" id="go-discuss-btn" onclick="goVote()" style="display:none;">議論フェーズへ →</button>
+    </div>
+  </div>
+
+  <!-- VOTE -->
+  <div id="scr-vote" class="scr">
+    <div class="card">
+      <div class="lbl" style="margin-bottom:6px;">レース結果</div>
+      <div class="pod3" id="vote-podium"></div>
+      <div id="race-all-results" style="font-size:11px;color:var(--color-text-secondary);margin-bottom:8px;"></div>
+      <div class="payout-highlight">
+        <div>
+          <div style="font-size:11px;color:var(--color-text-secondary);">1位馬の的中ポイント</div>
+          <div class="payout-val" id="winner-payout"></div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:11px;color:var(--color-text-secondary);">村人勝利時は生存者で山分け</div>
+          <div id="split-payout" style="font-size:13px;color:#185fa5;font-weight:500;"></div>
+        </div>
+      </div>
+      <div class="lbl" style="margin-bottom:6px;">出走表（参考）</div>
+      <div id="vote-rc-mini" class="rc-mini"></div>
+    </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <div>
+          <div class="lbl">投票</div>
+          <div id="vote-round-lbl" style="font-size:12px;color:var(--color-text-secondary);margin-top:2px;"></div>
+        </div>
+        <button class="btn-ghost" onclick="resetVotes()" id="reset-vote-btn">リセット</button>
+      </div>
+      <div class="vgrid" id="vgrid"></div>
+      <div class="elim-notice" id="elim-notice"></div>
+      <div style="text-align:right;">
+        <button class="btn btn-blue" id="vote-confirm-btn" onclick="confirmVotes()">投票を確定する</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESULT -->
+  <div id="scr-result" class="scr">
+    <div class="big-banner" id="result-banner"></div>
+    <div class="card">
+      <div class="lbl" style="margin-bottom:8px;">累計スコア</div>
+      <div id="score-list"></div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn-ghost" onclick="fullReset()">最初からリセット</button>
+      <button class="btn btn-blue" onclick="nextGame()">次のゲームへ →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const BASE_HORSES=[
+  {id:1,name:"サクラストーム",color:"#e24b4a"},
+  {id:2,name:"ゴールドフラッシュ",color:"#f0992b"},
+  {id:3,name:"ブルーウィンド",color:"#378add"},
+  {id:4,name:"グリーンサンダー",color:"#3b9622"},
+  {id:5,name:"パープルスター",color:"#7f77dd"},
+  {id:6,name:"シルバームーン",color:"#888780"},
+  {id:7,name:"ローズクイーン",color:"#d4537e"},
+  {id:8,name:"ティールアロー",color:"#1d9e75"},
+];
+const ODDS_POOL=[1.2,1.5,1.8,2.0,2.3,2.8,3.2,3.8,4.5,5.0,6.0,7.0,8.5,10.0,13.0,18.0,25.0];
+
+let g={
+  players:[],horses:[],
+  assignments:{},raceResult:[],alive:[],votes:{},
+  wolfName:null,wolfWon:false,scores:{},gameCount:0,bet:1000,
+  dealIdx:0,racePositions:{},raceFinished:[],raceAnim:null,
+  voteRound:0,votingLocked:false,
+};
+
+function $(i){return document.getElementById(i);}
+const SCREENS=['setup','racecard','deal','race','vote','result'];
+function showScr(name){
+  SCREENS.forEach(s=>$('scr-'+s).classList.toggle('on',s===name));
+  const idx=SCREENS.indexOf(name);
+  SCREENS.forEach((_,i)=>{$('pd'+i).className='pd'+(i<idx?' done':i===idx?' cur':'');});
+}
+function shuffle(arr){
+  const a=[...arr];
+  for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+  return a;
+}
+function wolfPtsFor(h){return Math.round(g.bet*h.odds);}
+function activeHorses(){return g.horses;}
+function generateOdds(n){return shuffle([...ODDS_POOL]).slice(0,n);}
+function buildHorses(){
+  const n=g.players.length;
+  const odds=generateOdds(n);
+  g.horses=BASE_HORSES.slice(0,n).map((h,i)=>({...h,odds:odds[i]}));
+}
+
+function renderSetup(){
+  const list=$('player-list');list.innerHTML='';
+  g.players.forEach((p,i)=>{
+    const row=document.createElement('div');row.className='pi-row';
+    row.innerHTML=`<div class="pi-num">${i+1}</div>
+      <input type="text" placeholder="プレイヤー${i+1}" value="${p.name}" maxlength="8" oninput="g.players[${i}].name=this.value;validateSetup();">
+      ${g.players.length>3?`<button class="btn-ghost" onclick="removePlayer(${i})" style="padding:5px 10px;font-size:13px;">×</button>`:''}`;
+    list.appendChild(row);
+  });
+  $('add-btn').disabled=g.players.length>=8;
+  validateSetup();
+}
+function addPlayer(){if(g.players.length>=8)return;g.players.push({name:''});renderSetup();}
+function removePlayer(i){if(g.players.length<=3)return;g.players.splice(i,1);renderSetup();}
+function validateSetup(){$('start-btn').disabled=!(g.players.length>=3&&g.players.every(p=>p.name.trim()));}
+
+function goRaceCard(){
+  g.bet=parseInt($('bet-input').value)||1000;
+  g.players.forEach(p=>{if(g.scores[p.name]==null)g.scores[p.name]=0;});
+  buildHorses();
+  renderRaceCardTable();
+  showScr('racecard');
+}
+function renderRaceCardTable(){
+  const tbody=$('rc-tbody');
+  tbody.innerHTML='';
+  activeHorses().forEach((h,i)=>{
+    const pts=wolfPtsFor(h);
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td><span class="hn-circle" style="background:${h.color}">${h.id}</span></td>
+      <td><input class="horse-name-input" value="${h.name}" maxlength="12" oninput="updateHorseName(${i},this.value)" placeholder="馬名"></td>
+      <td style="color:var(--color-text-secondary);font-size:13px;">${h.odds.toFixed(1)}倍</td>
+      <td class="pts">${pts.toLocaleString()}pt</td>`;
+    tbody.appendChild(tr);
+  });
+}
+function updateHorseName(i,val){g.horses[i].name=val||`馬${i+1}`;}
+function renderRcMini(targetId){
+  const el=$(targetId);if(!el)return;
+  el.innerHTML=activeHorses().map(h=>{
+    const pts=wolfPtsFor(h);
+    return `<div class="rc-mini-item">
+      <span class="hn-circle" style="background:${h.color};width:20px;height:20px;font-size:9px;">${h.id}</span>
+      <span>${h.name}</span>
+      <span style="color:#185fa5;font-weight:500;">${pts.toLocaleString()}pt</span>
+    </div>`;
+  }).join('');
+}
+
+function dealCards(){
+  const horses=activeHorses();
+  const shuffled=shuffle(horses.map(h=>h.id));
+  g.assignments={};
+  g.players.forEach((_,i)=>{g.assignments[i]=shuffled[i];});
+  g.alive=g.players.map(p=>p.name);
+  g.wolfName=null;g.raceResult=[];g.votes={};
+  g.wolfWon=false;g.voteRound=0;g.votingLocked=false;g.raceFinished=[];
+  g.gameCount++;
+  $('game-count-badge').textContent=`第${g.gameCount}ゲーム`;
+  $('game-count-badge').style.display='inline';
+  g.dealIdx=0;
+  showScr('deal');renderDeal();
+}
+function renderDeal(){
+  const p=g.players[g.dealIdx];
+  $('deal-who').textContent=`${p.name}さん、デバイスを受け取ってください`;
+  $('deal-prog').textContent=`${g.dealIdx+1} / ${g.players.length}人目`;
+  $('reveal-prompt').style.display='block';
+  $('reveal-content').style.display='none';
+}
+function showCard(){
+  const hid=g.assignments[g.dealIdx];
+  const h=activeHorses().find(x=>x.id===hid);
+  $('reveal-num').textContent=h.id+'番';
+  $('reveal-num').style.color=h.color;
+  $('reveal-name').textContent=h.name;
+  $('reveal-odds').textContent=`オッズ ${h.odds.toFixed(1)}倍`;
+  $('reveal-pts').innerHTML=`この馬が1着なら <strong style="color:#185fa5">${wolfPtsFor(h).toLocaleString()}pt</strong> 獲得チャンス`;
+  $('reveal-prompt').style.display='none';
+  $('reveal-content').style.display='block';
+}
+function nextDeal(){
+  g.dealIdx++;
+  if(g.dealIdx>=g.players.length)startRaceScreen();
+  else renderDeal();
+}
+
+function startRaceScreen(){
+  showScr('race');renderRcMini('race-rc-mini');buildTrack();
+}
+function buildTrack(){
+  const track=$('track');track.innerHTML='';
+  activeHorses().forEach(h=>{
+    const lane=document.createElement('div');lane.className='lane';
+    lane.innerHTML=`<div class="hn" style="background:${h.color}">${h.id}</div>
+      <div class="lt">
+        <div class="fl"></div>
+        <div class="hi" id="hi-${h.id}" style="left:2px">🐎</div>
+        <div class="hn-tag">${h.name}</div>
+        <div class="rb" id="rb-${h.id}"></div>
+      </div>`;
+    track.appendChild(lane);
+  });
+  $('race-start-btn').style.display='inline-block';
+  $('go-discuss-btn').style.display='none';
+}
+function startRace(){
+  $('race-start-btn').style.display='none';
+  const horses=activeHorses();
+  const oddsInv=horses.map(h=>1/h.odds);
+  const tot=oddsInv.reduce((a,b)=>a+b,0);
+  const probs={};horses.forEach((h,i)=>{probs[h.id]=oddsInv[i]/tot;});
+  horses.forEach(h=>{g.racePositions[h.id]=0;});
+  g.raceFinished=[];
+  const lt=document.querySelector('.lt');
+  const tw=lt?lt.offsetWidth-26:500;
+  const rkLabels=['🥇','🥈','🥉','4着','5着','6着','7着','8着'];
+  function tick(){
+    if(g.raceFinished.length===horses.length){
+      const winner=g.raceFinished[0];
+      const wIdx=Object.entries(g.assignments).find(([,hid])=>hid===winner);
+      g.wolfName=wIdx?g.players[parseInt(wIdx[0])].name:null;
+      $('go-discuss-btn').style.display='inline-block';return;
+    }
+    horses.forEach(h=>{
+      if(g.raceFinished.includes(h.id))return;
+      const surge=Math.random()<.07?Math.random()*1.6:0;
+      const tired=g.racePositions[h.id]>tw*.65?.92:1;
+      const spd=probs[h.id]*6*.25*tired+surge*probs[h.id]+Math.random()*.38;
+      g.racePositions[h.id]=Math.min(g.racePositions[h.id]+spd,tw);
+      const el=$('hi-'+h.id);
+      if(el)el.style.left=Math.round(g.racePositions[h.id])+'px';
+      if(g.racePositions[h.id]>=tw&&!g.raceFinished.includes(h.id)){
+        g.raceFinished.push(h.id);
+        const rb=$('rb-'+h.id);
+        const rank=rkLabels[g.raceFinished.length-1]||g.raceFinished.length+'着';
+        if(rb){rb.textContent=rank;rb.style.display='block';}
+      }
+    });
+    g.raceAnim=requestAnimationFrame(tick);
+  }
+  g.raceAnim=requestAnimationFrame(tick);
+}
+
+function goVote(){
+  g.voteRound=1;showScr('vote');
+  renderVotePodium();renderRcMini('vote-rc-mini');renderVoteGrid();
+}
+function renderVotePodium(){
+  const horses=activeHorses();
+  const top3=g.raceFinished.slice(0,3);
+  $('vote-podium').innerHTML=top3.map((hid,i)=>{
+    const h=horses.find(x=>x.id===hid);
+    return `<div class="pod"><div class="pod-rank">${['🥇 1着','🥈 2着','🥉 3着'][i]}</div>
+      <div class="pod-name">${h.name}</div>
+      <div class="pod-info" style="color:${h.color}">${h.id}番 / ${h.odds.toFixed(1)}倍</div></div>`;
+  }).join('');
+  const all=g.raceFinished.map((hid,i)=>{
+    const h=horses.find(x=>x.id===hid);
+    return `<span style="margin-right:8px;">${i+1}着:<span style="color:${h.color}"> ${h.id}番 ${h.name}</span></span>`;
+  }).join('');
+  $('race-all-results').innerHTML='全着順: '+all;
+  const winner=horses.find(h=>h.id===g.raceFinished[0]);
+  $('winner-payout').textContent=(winner?wolfPtsFor(winner):0).toLocaleString()+'pt';
+  updateSplitDisplay();
+}
+function updateSplitDisplay(){
+  const horses=activeHorses();
+  const winner=horses.find(h=>h.id===g.raceFinished[0]);
+  const pts=winner?wolfPtsFor(winner):0;
+  const villagers=g.alive.filter(n=>n!==g.wolfName);
+  const splitPts=villagers.length>0?Math.floor(pts/villagers.length):0;
+  $('split-payout').textContent=villagers.length>0?`${splitPts.toLocaleString()}pt × ${villagers.length}人`:'';
+}
+function renderVoteGrid(){
+  g.votes={};g.alive.forEach(n=>{g.votes[n]=0;});
+  $('vote-round-lbl').textContent=`第${g.voteRound}ラウンド — 1位馬の持ち主は誰だ？`;
+  $('elim-notice').style.display='none';
+  $('vote-confirm-btn').style.display='inline-block';
+  $('reset-vote-btn').style.display='inline-block';
+  g.votingLocked=false;
+  const grid=$('vgrid');grid.innerHTML='';
+  const horses=activeHorses();
+  g.players.forEach((p,pi)=>{
+    const alive=g.alive.includes(p.name);
+    const card=document.createElement('div');
+    card.className='vcard'+(alive?'':' dead');
+    card.id='vc-'+p.name;
+    card.onclick=()=>{if(!g.votingLocked&&alive)addVote(p.name);};
+    let horseInfo='';
+    if(!alive){
+      const hid=g.assignments[pi];const h=horses.find(x=>x.id===hid);
+      horseInfo=`<div class="vhorse" style="color:${h.color}">${h.id}番 ${h.name}</div>`;
+    }
+    card.innerHTML=`<div class="vcnt" id="vcnt-${p.name}">0</div>
+      <div class="vname" style="color:${alive?'var(--color-text-primary)':'var(--color-text-secondary)'}">${p.name}</div>
+      <div class="vstatus" id="vstatus-${p.name}">${alive?'🟢 生存中':'脱落'}</div>${horseInfo}`;
+    grid.appendChild(card);
+  });
+}
+function addVote(name){
+  if(g.votingLocked||!g.alive.includes(name))return;
+  g.votes[name]=(g.votes[name]||0)+1;
+  const cnt=$('vcnt-'+name);cnt.textContent=g.votes[name];cnt.classList.add('show');
+}
+function resetVotes(){
+  if(g.votingLocked)return;
+  g.alive.forEach(name=>{g.votes[name]=0;const cnt=$('vcnt-'+name);if(cnt){cnt.textContent='0';cnt.classList.remove('show');}});
+}
+function confirmVotes(){
+  const entries=g.alive.map(n=>[n,g.votes[n]||0]);
+  const maxV=Math.max(...entries.map(e=>e[1]));
+  if(maxV===0){alert('誰かに投票してから確定してください');return;}
+  const top=entries.filter(e=>e[1]===maxV);
+  const eliminated=top[Math.floor(Math.random()*top.length)][0];
+  g.votingLocked=true;$('vote-confirm-btn').style.display='none';$('reset-vote-btn').style.display='none';
+  eliminatePlayer(eliminated);
+}
+function eliminatePlayer(name){
+  const horses=activeHorses();
+  const pIdx=g.players.findIndex(p=>p.name===name);
+  const hid=g.assignments[pIdx];const h=horses.find(x=>x.id===hid);
+  const isWolf=name===g.wolfName;
+  g.alive=g.alive.filter(n=>n!==name);
+  const vc=$('vc-'+name);
+  if(vc){
+    vc.classList.add('dead');if(isWolf)vc.classList.add('is-wolf');
+    const vs=$('vstatus-'+name);if(vs)vs.textContent=isWolf?'🐺 脱落（馬狼！）':'脱落';
+    if(!vc.querySelector('.vhorse')){
+      const hDiv=document.createElement('div');hDiv.className='vhorse';hDiv.style.color=h.color;
+      hDiv.textContent=`${h.id}番 ${h.name}`;vc.appendChild(hDiv);
+    }
+  }
+  updateSplitDisplay();
+  const notice=$('elim-notice');notice.style.display='block';
+  if(isWolf){
+    notice.style.background='#e6f1fb';notice.style.color='#0c447c';
+    notice.innerHTML=`<strong>${name}</strong>が脱落しました！<br>この人が馬狼でした（${h.id}番・${h.name}）<br>村人チームの勝利！`;
+    setTimeout(()=>showResult(false),2200);
+  }else{
+    notice.style.background='#faeeda';notice.style.color='#633806';
+    notice.innerHTML=`<strong>${name}</strong>が脱落しました（${h.id}番・${h.name}）<br>馬狼ではありませんでした。`;
+    const wolfAlive=g.wolfName&&g.alive.includes(g.wolfName);
+    if((wolfAlive&&g.alive.length<=2)||!g.wolfName){setTimeout(()=>showResult(true),2200);}
+    else{
+      setTimeout(()=>{
+        g.voteRound++;renderVoteGrid();
+        $('vote-round-lbl').textContent=`第${g.voteRound}ラウンド — まだ見つかっていません！`;
+        updateSplitDisplay();
+      },2200);
+    }
+  }
+}
+
+function showResult(wolfWon){
+  g.wolfWon=wolfWon;showScr('result');
+  const horses=activeHorses();
+  const winner1st=horses.find(h=>h.id===g.raceFinished[0]);
+  const totalPts=winner1st?wolfPtsFor(winner1st):0;
+  let wolfGain=0,splitGain=0,splitCount=0;
+  if(wolfWon&&g.wolfName){
+    wolfGain=totalPts;g.scores[g.wolfName]=(g.scores[g.wolfName]||0)+wolfGain;
+  }else{
+    const survivors=g.alive.filter(n=>n!==g.wolfName);
+    splitCount=survivors.length;splitGain=splitCount>0?Math.floor(totalPts/splitCount):0;
+    survivors.forEach(n=>{g.scores[n]=(g.scores[n]||0)+splitGain;});
+  }
+  const banner=$('result-banner');
+  if(wolfWon){
+    banner.style.background='#fcebeb';
+    banner.innerHTML=`<div class="banner-title" style="color:#a32d2d">🐺 ${g.wolfName||'馬狼'}の勝利！</div>
+      <div class="banner-sub" style="color:#993c1d">${g.wolfName}は最後まで生き残り<br>+${wolfGain.toLocaleString()}pt獲得（${winner1st?winner1st.odds.toFixed(1)+'倍':'?'}）</div>`;
+  }else{
+    const wolfHorse=g.wolfName?horses.find(h=>h.id===g.assignments[g.players.findIndex(p=>p.name===g.wolfName)]):null;
+    banner.style.background='#e6f1fb';
+    banner.innerHTML=`<div class="banner-title" style="color:#0c447c">🏘️ 村人チームの勝利！</div>
+      <div class="banner-sub" style="color:#185fa5">馬狼（${g.wolfName||'?'}）を見つけました！${wolfHorse?`（${wolfHorse.id}番・${wolfHorse.name}）`:''}<br>${totalPts.toLocaleString()}ptを${splitCount}人で山分け → 各 +${splitGain.toLocaleString()}pt</div>`;
+  }
+  const sorted=Object.entries(g.scores).sort((a,b)=>b[1]-a[1]);
+  $('score-list').innerHTML=sorted.map(([name,pts],i)=>{
+    const isWolfWin=wolfWon&&name===g.wolfName;
+    const isVilWin=!wolfWon&&g.alive.filter(n=>n!==g.wolfName).includes(name);
+    const gainStr=isWolfWin?` (+${wolfGain.toLocaleString()})`:isVilWin?` (+${splitGain.toLocaleString()})`:'';
+    const cls=isWolfWin?'wolf-gain':isVilWin?'vil-gain':'';
+    return `<div class="score-item"><span class="score-name">${i+1}. ${name}</span>
+      <span class="score-pts ${cls}">${pts.toLocaleString()}pt${gainStr}</span></div>`;
+  }).join('');
+}
+function nextGame(){
+  buildHorses();
+  renderRaceCardTable();showScr('racecard');
+}
+function fullReset(){
+  if(g.raceAnim)cancelAnimationFrame(g.raceAnim);
+  g.scores={};g.gameCount=0;g.horses=[];
+  $('game-count-badge').style.display='none';
+  g.players=[{name:''},{name:''},{name:''}];
+  showScr('setup');renderSetup();
+}
+
+g.players=[{name:''},{name:''},{name:''}];
+renderSetup();
+</script>
+</body>
+</html>
