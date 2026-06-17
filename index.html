@@ -17,17 +17,6 @@
   --border-radius-md: 8px;
   --border-radius-lg: 12px;
 }
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-background-primary: #1e1e1c;
-    --color-background-secondary: #2a2a28;
-    --color-background-info: #042c53;
-    --color-text-primary: #f0ede6;
-    --color-text-secondary: #9a9a96;
-    --color-border-tertiary: rgba(255,255,255,0.1);
-    --color-border-secondary: rgba(255,255,255,0.2);
-  }
-}
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: var(--font-sans); background: var(--color-background-secondary); min-height: 100vh; display: flex; justify-content: center; padding: 1.5rem 1rem; }
 #app { width: 100%; max-width: 680px; padding: .75rem 0; }
@@ -55,14 +44,7 @@ p.sub { font-size: 13px; color: var(--color-text-secondary); margin-bottom: 1rem
 .hn-circle { display: inline-flex; width: 26px; height: 26px; border-radius: 50%; align-items: center; justify-content: center; font-size: 12px; font-weight: 500; color: #fff; flex-shrink: 0; }
 .horse-name-input { width: 100%; padding: 5px 8px; border: .5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); font-size: 13px; background: var(--color-background-primary); color: var(--color-text-primary); outline: none; }
 .horse-name-input:focus { border-color: #3b7dd8; }
-.track { background: #264d17; border-radius: var(--border-radius-lg); padding: 12px 14px; margin-bottom: 12px; }
-.lane { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; height: 34px; } .lane:last-child { margin-bottom: 0; }
-.hn { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 500; color: #fff; flex-shrink: 0; }
-.lt { flex: 1; position: relative; height: 30px; background: rgba(255,255,255,.08); border-radius: 3px; overflow: hidden; }
-.fl { position: absolute; right: 0; top: 0; bottom: 0; width: 3px; background: repeating-linear-gradient(180deg,#fff 0 4px,#333 4px 8px); z-index: 2; }
-.hi { position: absolute; top: 50%; transform: translateY(-50%) scaleX(-1); font-size: 18px; z-index: 3; line-height: 1; transition: left .08s linear; }
-.hn-tag { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); font-size: 9px; color: rgba(255,255,255,.4); pointer-events: none; }
-.rb { position: absolute; left: 2px; top: 50%; transform: translateY(-50%); font-size: 10px; color: #ffd700; z-index: 4; display: none; font-weight: 500; }
+.track { border-radius: var(--border-radius-lg); margin-bottom: 12px; overflow: hidden; }
 .reveal-box { text-align: center; padding: 2rem 1rem; background: var(--color-background-secondary); border-radius: var(--border-radius-lg); border: .5px solid var(--color-border-tertiary); }
 .horse-big { font-size: 60px; font-weight: 500; margin: .75rem 0; line-height: 1; }
 .horse-nm { font-size: 16px; font-weight: 500; color: var(--color-text-primary); }
@@ -374,33 +356,119 @@ function startRaceScreen(){
 }
 function buildTrack(){
   const track=$('track');track.innerHTML='';
-  activeHorses().forEach(h=>{
-    const lane=document.createElement('div');lane.className='lane';
-    lane.innerHTML=`<div class="hn" style="background:${h.color}">${h.id}</div>
-      <div class="lt">
-        <div class="fl"></div>
-        <div class="hi" id="hi-${h.id}" style="left:2px">🐎</div>
-        <div class="hn-tag">${h.name}</div>
-        <div class="rb" id="rb-${h.id}"></div>
-      </div>`;
-    track.appendChild(lane);
-  });
+  const W=track.clientWidth||340;
+  const H=Math.max(180,Math.round(W*0.42));
+  const canvas=document.createElement('canvas');
+  canvas.id='race-canvas';
+  canvas.style.cssText='display:block;';
+  canvas.width=W;canvas.height=H;
+  track.appendChild(canvas);
+  const horses=activeHorses();
+  horses.forEach(h=>{g.racePositions[h.id]=0;});
+  drawOval(canvas,horses,{},[],null);
   $('race-start-btn').style.display='inline-block';
   $('go-discuss-btn').style.display='none';
+}
+function ovalParams(canvas){
+  const W=canvas.width,H=canvas.height;
+  const cx=W/2,cy=H/2;
+  const rx=W/2-22,ry=H/2-18;
+  const band=Math.min(30,ry*0.55);
+  const a=rx,b=ry;
+  const perim=Math.PI*(3*(a+b)-Math.sqrt((3*a+b)*(a+3*b)));
+  return{W,H,cx,cy,rx,ry,band,perim};
+}
+function drawOval(canvas,horses,positions,finished,ann){
+  const ctx=canvas.getContext('2d');
+  const{W,H,cx,cy,rx,ry,band}=ovalParams(canvas);
+  const n=horses.length;
+  ctx.clearRect(0,0,W,H);
+  // Background
+  ctx.fillStyle='#6aaa30';ctx.fillRect(0,0,W,H);
+  // Track band – alternating green rings
+  ctx.beginPath();ctx.ellipse(cx,cy,rx+band/2,ry+band/2,0,0,Math.PI*2);
+  ctx.fillStyle='#b0e84a';ctx.fill();
+  ctx.beginPath();ctx.ellipse(cx,cy,rx+band/8,ry+band/8,0,0,Math.PI*2);
+  ctx.fillStyle='#9fd83e';ctx.fill();
+  ctx.beginPath();ctx.ellipse(cx,cy,rx-band/4,ry-band/4,0,0,Math.PI*2);
+  ctx.fillStyle='#b0e84a';ctx.fill();
+  // Inner grass
+  ctx.beginPath();ctx.ellipse(cx,cy,rx-band/2,ry-band/2,0,0,Math.PI*2);
+  ctx.fillStyle='#6aaa30';ctx.fill();
+  // Borders
+  ctx.strokeStyle='rgba(0,0,0,0.22)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.ellipse(cx,cy,rx+band/2,ry+band/2,0,0,Math.PI*2);ctx.stroke();
+  ctx.beginPath();ctx.ellipse(cx,cy,rx-band/2,ry-band/2,0,0,Math.PI*2);ctx.stroke();
+  // Finish line at top (angle = -π/2)
+  const fa=-Math.PI/2;
+  const ix=cx+(rx-band/2)*Math.cos(fa),iy=cy+(ry-band/2)*Math.sin(fa);
+  const ox=cx+(rx+band/2)*Math.cos(fa),oy=cy+(ry+band/2)*Math.sin(fa);
+  for(let s=0;s<6;s++){
+    const t1=s/6,t2=(s+1)/6;
+    ctx.beginPath();
+    ctx.moveTo(ix+(ox-ix)*t1,iy+(oy-iy)*t1);
+    ctx.lineTo(ix+(ox-ix)*t2,iy+(oy-iy)*t2);
+    ctx.strokeStyle=s%2===0?'#fff':'#333';ctx.lineWidth=5;ctx.stroke();
+  }
+  // Horses
+  const rkEmoji=['🥇','🥈','🥉','4','5','6','7','8'];
+  horses.forEach((h,i)=>{
+    const pos=positions[h.id]||0;
+    const{perim}=ovalParams(canvas);
+    const frac=Math.min(pos/perim,0.9999);
+    const angle=-Math.PI/2+frac*Math.PI*2;
+    const laneOff=n>1?(i-(n-1)/2)*(band*0.65/(n-1)):0;
+    const hx=cx+(rx+laneOff)*Math.cos(angle);
+    const hy=cy+(ry+laneOff)*Math.sin(angle);
+    const isDone=finished.includes(h.id);
+    const rank=finished.indexOf(h.id);
+    // Tangent angle = direction of travel on the oval
+    const tangent=Math.atan2(ry*Math.cos(angle),-rx*Math.sin(angle));
+    if(isDone&&rank>=0&&rank<3){
+      // Rank badge (upright)
+      ctx.beginPath();ctx.arc(hx,hy,13,0,Math.PI*2);
+      ctx.fillStyle='rgba(40,40,40,0.55)';ctx.fill();
+      ctx.font='16px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(rkEmoji[rank],hx,hy);
+    }else{
+      // Horse emoji rotated to face direction of travel
+      ctx.save();
+      ctx.translate(hx,hy);ctx.rotate(tangent);ctx.scale(-1,1);
+      ctx.font='22px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText('🐎',0,0);
+      ctx.restore();
+      // Number (upright, just below emoji, horse color with dark outline)
+      ctx.font='bold 11px sans-serif';
+      ctx.strokeStyle='rgba(0,0,0,0.7)';ctx.lineWidth=3;
+      ctx.textAlign='center';ctx.textBaseline='top';
+      ctx.strokeText(h.id,hx,hy+12);
+      ctx.fillStyle=h.color;
+      ctx.fillText(h.id,hx,hy+12);
+    }
+  });
+  // Announcement
+  if(ann){
+    ctx.fillStyle='rgba(0,0,0,0.5)';ctx.fillRect(0,H/2-22,W,44);
+    ctx.fillStyle='#fff';ctx.font='bold 16px sans-serif';
+    ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(ann,W/2,H/2);
+  }
 }
 function startRace(){
   $('race-start-btn').style.display='none';
   const horses=activeHorses();
+  const canvas=$('race-canvas');
+  const{perim}=ovalParams(canvas);
+  const totalDist=perim;
   const oddsInv=horses.map(h=>1/h.odds);
   const tot=oddsInv.reduce((a,b)=>a+b,0);
   const probs={};horses.forEach((h,i)=>{probs[h.id]=oddsInv[i]/tot;});
   horses.forEach(h=>{g.racePositions[h.id]=0;});
   g.raceFinished=[];
-  const lt=document.querySelector('.lt');
-  const tw=lt?lt.offsetWidth-26:500;
-  const rkLabels=['🥇','🥈','🥉','4着','5着','6着','7着','8着'];
+  let ann='',annTil=0,ann75=false,ann25=false;
   function tick(){
+    const now=performance.now();
     if(g.raceFinished.length===horses.length){
+      drawOval(canvas,horses,g.racePositions,g.raceFinished,null);
       const winner=g.raceFinished[0];
       const wIdx=Object.entries(g.assignments).find(([,hid])=>hid===winner);
       g.wolfName=wIdx?g.players[parseInt(wIdx[0])].name:null;
@@ -408,19 +476,18 @@ function startRace(){
     }
     horses.forEach(h=>{
       if(g.raceFinished.includes(h.id))return;
-      const surge=Math.random()<.07?Math.random()*1.6:0;
-      const tired=g.racePositions[h.id]>tw*.65?.92:1;
-      const spd=probs[h.id]*6*.25*tired+surge*probs[h.id]+Math.random()*.38;
-      g.racePositions[h.id]=Math.min(g.racePositions[h.id]+spd,tw);
-      const el=$('hi-'+h.id);
-      if(el)el.style.left=Math.round(g.racePositions[h.id])+'px';
-      if(g.racePositions[h.id]>=tw&&!g.raceFinished.includes(h.id)){
+      const surge=Math.random()<.07?Math.random()*3:0;
+      const tired=g.racePositions[h.id]>totalDist*.65?.9:1;
+      const spd=(probs[h.id]*5+Math.random()*.9+surge)*tired;
+      g.racePositions[h.id]=Math.min(g.racePositions[h.id]+spd,totalDist);
+      if(g.racePositions[h.id]>=totalDist&&!g.raceFinished.includes(h.id)){
         g.raceFinished.push(h.id);
-        const rb=$('rb-'+h.id);
-        const rank=rkLabels[g.raceFinished.length-1]||g.raceFinished.length+'着';
-        if(rb){rb.textContent=rank;rb.style.display='block';}
       }
     });
+    const lead=Math.max(...horses.filter(h=>!g.raceFinished.includes(h.id)).map(h=>g.racePositions[h.id])||[0]);
+    if(!ann25&&lead>=totalDist*.25){ann25=true;ann='🔵 第1コーナー！';annTil=now+1200;}
+    if(!ann75&&lead>=totalDist*.72){ann75=true;ann='🏁 最終コーナー！';annTil=now+1500;}
+    drawOval(canvas,horses,g.racePositions,g.raceFinished,now<annTil?ann:null);
     g.raceAnim=requestAnimationFrame(tick);
   }
   g.raceAnim=requestAnimationFrame(tick);
